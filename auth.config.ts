@@ -9,7 +9,7 @@ export const authConfig = {
             const isLoggedIn = !!auth?.user;
             const role = auth?.user?.role;
             const pathname = nextUrl.pathname;
-            const isOnDashboard = pathname.startsWith('/dashboard');
+            const isOnDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/student');
 
             if (!isOnDashboard) {
                 if (isLoggedIn && pathname === '/login') {
@@ -35,7 +35,7 @@ export const authConfig = {
             if (pathname.startsWith('/dashboard/reports') && !isRole(['SUPER_ADMIN', 'TRUST_MANAGER', 'SECTION_HEAD'])) return false;
 
             if (pathname.startsWith('/dashboard/teacher') && !isRole(['TEACHER'])) return false;
-            if (pathname.startsWith('/dashboard/student') && !isRole(['STUDENT'])) return false;
+            if (pathname.startsWith('/student') && !isRole(['STUDENT'])) return false;
 
             return true;
         },

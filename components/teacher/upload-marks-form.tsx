@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LeaveRemarkDialog } from "@/components/teacher/leave-remark-dialog";
 
 const FormSchema = z.object({
     examTitle: z.string().min(2, "Exam title is required."),
@@ -24,10 +25,11 @@ const FormSchema = z.object({
 interface Props {
     classId: string;
     subjectId: string;
+    subjectName?: string;
     students: { id: string; name: string; registrationId: string }[];
 }
 
-export function UploadMarksForm({ classId, subjectId, students }: Props) {
+export function UploadMarksForm({ classId, subjectId, subjectName, students }: Props) {
     const [loading, setLoading] = useState(false);
 
     // Initialize empty form mapping to all students
@@ -124,6 +126,7 @@ export function UploadMarksForm({ classId, subjectId, students }: Props) {
                                 <TableHead className="w-[100px]">Reg ID</TableHead>
                                 <TableHead>Student Name</TableHead>
                                 <TableHead className="w-[150px] text-right">Marks Obtained</TableHead>
+                                <TableHead className="w-[150px] text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -150,6 +153,13 @@ export function UploadMarksForm({ classId, subjectId, students }: Props) {
                                                         </FormControl>
                                                     </FormItem>
                                                 )}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <LeaveRemarkDialog
+                                                studentId={student.id}
+                                                studentName={student.name}
+                                                defaultSubject={subjectName}
                                             />
                                         </TableCell>
                                     </TableRow>

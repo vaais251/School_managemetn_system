@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LeaveRemarkDialog } from "@/components/teacher/leave-remark-dialog";
 
 const FormSchema = z.object({
     date: z.date(),
@@ -131,6 +132,7 @@ export function DailyAttendanceForm({ classId, students }: Props) {
                                 <TableHead className="w-[100px]">Reg ID</TableHead>
                                 <TableHead>Student Name</TableHead>
                                 <TableHead className="w-[200px]">Status</TableHead>
+                                <TableHead className="w-[150px] text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -168,6 +170,9 @@ export function DailyAttendanceForm({ classId, students }: Props) {
                                                     </FormItem>
                                                 )}
                                             />
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <LeaveRemarkDialog studentId={student.id} studentName={student.name} />
                                         </TableCell>
                                     </TableRow>
                                 );

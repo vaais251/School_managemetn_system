@@ -53,12 +53,14 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  studentProfile     StudentProfile?
-  teacherAssignments TeacherAssignment[]
-  auditLogs          AuditLog[]
-  evaluationsReceived StaffEvaluation[] @relation("EvaluationTarget")
-  evaluationsGiven    StaffEvaluation[] @relation("Evaluator")
-  feedbackReceived    Feedback[]        @relation("TeacherFeedback")
+  studentProfile      StudentProfile?
+  teacherAssignments  TeacherAssignment[]
+  auditLogs           AuditLog[]
+  evaluationsReceived StaffEvaluation[]   @relation("EvaluationTarget")
+  evaluationsGiven    StaffEvaluation[]   @relation("Evaluator")
+  feedbackReceived    Feedback[]          @relation("TeacherFeedback")
+  surveySubmissions   SurveySubmission[]  @relation("SurveySubmissionEvaluatee")
+  remarksGiven        TeacherRemark[]     @relation("TeacherRemarksGiven")
 }
 
 model StudentProfile {
@@ -73,12 +75,14 @@ model StudentProfile {
   classId        String?
   class          Class?  @relation(fields: [classId], references: [id])
 
-  enrollments   ProgramEnrollment[]
-  feeVouchers   FeeVoucher[]
-  disbursements Disbursement[]
-  attendance    Attendance[]
-  marks         StudentMark[]
-  rflRecord     RFLAcademicRecord?
+  enrollments       ProgramEnrollment[]
+  feeVouchers       FeeVoucher[]
+  disbursements     Disbursement[]
+  attendance        Attendance[]
+  marks             StudentMark[]
+  rflRecord         RFLAcademicRecord?
+  surveySubmissions SurveySubmission[]
+  teacherRemarks    TeacherRemark[]
 }
 
 model ProgramEnrollment {
@@ -108,11 +112,11 @@ model Subject {
 }
 
 model TeacherAssignment {
-  id        String  @id @default(uuid())
+  id        String   @id @default(uuid())
   teacherId String
-  teacher   User    @relation(fields: [teacherId], references: [id])
+  teacher   User     @relation(fields: [teacherId], references: [id])
   classId   String
-  class     Class   @relation(fields: [classId], references: [id])
+  class     Class    @relation(fields: [classId], references: [id])
   subjectId String?
   subject   Subject? @relation(fields: [subjectId], references: [id])
 }
@@ -188,27 +192,27 @@ model RFLAcademicRecord {
   universityName  String
   degree          String
   currentSemester Int
-  gpa             Decimal?       // Optional initial, updated semesterly
+  gpa             Decimal? // Optional initial, updated semesterly
   updatedAt       DateTime       @updatedAt
 }
 
 model StaffEvaluation {
-  id              String   @id @default(uuid())
-  evaluateeId     String   // The staff member being evaluated
-  evaluatee       User     @relation("EvaluationTarget", fields: [evaluateeId], references: [id], onDelete: Cascade)
-  evaluatorId     String   // Admin or HR doing the evaluation
-  evaluator       User     @relation("Evaluator", fields: [evaluatorId], references: [id], onDelete: SetNull)
-  
+  id          String @id @default(uuid())
+  evaluateeId String // The staff member being evaluated
+  evaluatee   User   @relation("EvaluationTarget", fields: [evaluateeId], references: [id], onDelete: Cascade)
+  evaluatorId String // Admin or HR doing the evaluation
+  evaluator   User   @relation("Evaluator", fields: [evaluatorId], references: [id], onDelete: SetNull)
+
   // 5-star metrics
-  punctuality     Int      // 1-5
-  qualityOfWork   Int      // 1-5
-  teamwork        Int      // 1-5
-  communication   Int      // 1-5
-  initiative      Int      // 1-5
-  
-  averageScore    Decimal  // Computed field (e.g., 4.2)
-  comments        String?
-  date            DateTime @default(now())
+  punctuality   Int // 1-5
+  qualityOfWork Int // 1-5
+  teamwork      Int // 1-5
+  communication Int // 1-5
+  initiative    Int // 1-5
+
+  averageScore Decimal // Computed field (e.g., 4.2)
+  comments     String?
+  date         DateTime @default(now())
 }
 
 model Survey {
@@ -220,21 +224,51 @@ model Survey {
   createdAt   DateTime @default(now())
 
   feedbacks   Feedback[]
+  submissions SurveySubmission[]
 }
 
 model Feedback {
-  id          String   @id @default(uuid())
-  surveyId    String
-  survey      Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  
+  id       String @id @default(uuid())
+  surveyId String
+  survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
   // The teacher who is being rated
   evaluateeId String
-  evaluatee   User     @relation("TeacherFeedback", fields: [evaluateeId], references: [id], onDelete: Cascade)
-  
+  evaluatee   User   @relation("TeacherFeedback", fields: [evaluateeId], references: [id], onDelete: Cascade)
+
   // JSON object mapping metric index (or name) to a 1-5 score
   // Explicitly NO studentId so it remains anonymous
-  ratings     Json     
-  
+  ratings Json
+
   comments    String?
   submittedAt DateTime @default(now())
 }
+
+model SurveySubmission {
+  id       String @id @default(uuid())
+  surveyId String
+  survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // The teacher who was evaluated
+  evaluateeId String
+  evaluatee   User   @relation("SurveySubmissionEvaluatee", fields: [evaluateeId], references: [id], onDelete: Cascade)
+
+  submittedAt DateTime @default(now())
+
+  @@unique([surveyId, studentId, evaluateeId])
+}
+
+model TeacherRemark {
+  id          String         @id @default(uuid())
+  teacherId   String
+  teacher     User           @relation("TeacherRemarksGiven", fields: [teacherId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject     String?
+  comments    String
+  createdAt   DateTime       @default(now())
+}
+

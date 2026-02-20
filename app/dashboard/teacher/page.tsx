@@ -103,6 +103,7 @@ export default async function TeacherDashboard() {
                                         <UploadMarksForm
                                             classId={assignment.class.id}
                                             subjectId={assignment.subjectId!}
+                                            subjectName={assignment.subject?.name}
                                             students={assignment.class.studentProfiles}
                                         />
                                     </CardContent>

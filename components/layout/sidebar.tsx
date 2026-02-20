@@ -107,6 +107,18 @@ export default function Sidebar({ userRole }: SidebarProps) {
             icon: Settings,
             roles: ["SUPER_ADMIN"],
         },
+        {
+            title: "Student Portal",
+            href: "/student",
+            icon: GraduationCap,
+            roles: ["STUDENT"],
+        },
+        {
+            title: "QEC Feedback",
+            href: "/student/qec",
+            icon: ClipboardCheck,
+            roles: ["STUDENT"],
+        },
     ];
 
     const filteredItems = menuItems.filter((item) => {
