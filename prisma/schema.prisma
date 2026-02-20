@@ -1,0 +1,240 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  TRUST_MANAGER
+  SECTION_HEAD
+  FEE_DEPT
+  ADMISSION_DEPT
+  EXAM_DEPT
+  TEACHER
+  STUDENT
+}
+
+enum ProgramType {
+  MRHSS
+  MRA
+  RFL
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+}
+
+enum VoucherStatus {
+  PAID
+  UNPAID
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  DROPPED
+  COMPLETED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(STUDENT)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  studentProfile     StudentProfile?
+  teacherAssignments TeacherAssignment[]
+  auditLogs          AuditLog[]
+  evaluationsReceived StaffEvaluation[] @relation("EvaluationTarget")
+  evaluationsGiven    StaffEvaluation[] @relation("Evaluator")
+  feedbackReceived    Feedback[]        @relation("TeacherFeedback")
+}
+
+model StudentProfile {
+  id             String  @id @default(uuid())
+  userId         String  @unique
+  user           User    @relation(fields: [userId], references: [id])
+  registrationId String  @unique
+  name           String
+  isBeneficiary  Boolean @default(false)
+  needsHostel    Boolean @default(false)
+  guardianInfo   Json?
+  classId        String?
+  class          Class?  @relation(fields: [classId], references: [id])
+
+  enrollments   ProgramEnrollment[]
+  feeVouchers   FeeVoucher[]
+  disbursements Disbursement[]
+  attendance    Attendance[]
+  marks         StudentMark[]
+  rflRecord     RFLAcademicRecord?
+}
+
+model ProgramEnrollment {
+  id        String           @id @default(uuid())
+  studentId String
+  student   StudentProfile   @relation(fields: [studentId], references: [id])
+  type      ProgramType
+  status    EnrollmentStatus @default(ACTIVE)
+}
+
+model Class {
+  id   String @id @default(uuid())
+  name String @unique
+
+  teacherAssignments TeacherAssignment[]
+  studentProfiles    StudentProfile[]
+  feeStructure       FeeStructure?
+  studentMarks       StudentMark[]
+}
+
+model Subject {
+  id   String @id @default(uuid())
+  name String @unique
+
+  teacherAssignments TeacherAssignment[]
+  studentMarks       StudentMark[]
+}
+
+model TeacherAssignment {
+  id        String  @id @default(uuid())
+  teacherId String
+  teacher   User    @relation(fields: [teacherId], references: [id])
+  classId   String
+  class     Class   @relation(fields: [classId], references: [id])
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id])
+}
+
+model FeeVoucher {
+  id         String         @id @default(uuid())
+  studentId  String
+  student    StudentProfile @relation(fields: [studentId], references: [id])
+  month      DateTime
+  amount     Decimal
+  fineAmount Decimal?
+  status     VoucherStatus  @default(UNPAID)
+}
+
+model Disbursement {
+  id              String         @id @default(uuid())
+  studentId       String
+  student         StudentProfile @relation(fields: [studentId], references: [id])
+  amount          Decimal
+  purpose         String
+  transactionDate DateTime
+  description     String?
+}
+
+model Attendance {
+  id        String           @id @default(uuid())
+  studentId String
+  student   StudentProfile   @relation(fields: [studentId], references: [id])
+  date      DateTime
+  status    AttendanceStatus
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String
+  actor      User     @relation(fields: [actorId], references: [id])
+  actionType String
+  targetId   String?
+  timestamp  DateTime @default(now())
+}
+
+model FeeStructure {
+  id         String   @id @default(uuid())
+  classId    String   @unique
+  class      Class    @relation(fields: [classId], references: [id])
+  tuitionFee Decimal
+  hostelFee  Decimal
+  updatedAt  DateTime @updatedAt
+}
+
+model StudentMark {
+  id            String         @id @default(uuid())
+  studentId     String
+  student       StudentProfile @relation(fields: [studentId], references: [id])
+  subjectId     String
+  subject       Subject        @relation(fields: [subjectId], references: [id])
+  classId       String
+  class         Class          @relation(fields: [classId], references: [id])
+  marksObtained Decimal
+  totalMarks    Decimal
+  examTitle     String
+  date          DateTime       @default(now())
+}
+
+// ==========================================
+// PHASE 3: RFL, HR, & QEC
+// ==========================================
+
+model RFLAcademicRecord {
+  id              String         @id @default(uuid())
+  studentId       String         @unique
+  student         StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  universityName  String
+  degree          String
+  currentSemester Int
+  gpa             Decimal?       // Optional initial, updated semesterly
+  updatedAt       DateTime       @updatedAt
+}
+
+model StaffEvaluation {
+  id              String   @id @default(uuid())
+  evaluateeId     String   // The staff member being evaluated
+  evaluatee       User     @relation("EvaluationTarget", fields: [evaluateeId], references: [id], onDelete: Cascade)
+  evaluatorId     String   // Admin or HR doing the evaluation
+  evaluator       User     @relation("Evaluator", fields: [evaluatorId], references: [id], onDelete: SetNull)
+  
+  // 5-star metrics
+  punctuality     Int      // 1-5
+  qualityOfWork   Int      // 1-5
+  teamwork        Int      // 1-5
+  communication   Int      // 1-5
+  initiative      Int      // 1-5
+  
+  averageScore    Decimal  // Computed field (e.g., 4.2)
+  comments        String?
+  date            DateTime @default(now())
+}
+
+model Survey {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  metrics     String[] // Array of questions/metrics, e.g. ["Teacher's Knowledge", "Engagement"]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  feedbacks   Feedback[]
+}
+
+model Feedback {
+  id          String   @id @default(uuid())
+  surveyId    String
+  survey      Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  
+  // The teacher who is being rated
+  evaluateeId String
+  evaluatee   User     @relation("TeacherFeedback", fields: [evaluateeId], references: [id], onDelete: Cascade)
+  
+  // JSON object mapping metric index (or name) to a 1-5 score
+  // Explicitly NO studentId so it remains anonymous
+  ratings     Json     
+  
+  comments    String?
+  submittedAt DateTime @default(now())
+}
