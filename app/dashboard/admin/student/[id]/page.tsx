@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { User, GraduationCap, Banknote, ShieldAlert } from "lucide-react";
 
-const AUTHORIZED_ROLES = ["SUPER_ADMIN", "SECTION_HEAD", "TRUST_MANAGER", "ADMISSION_DEPT"];
+const AUTHORIZED_ROLES = ["SUPER_ADMIN", "SECTION_HEAD", "TRUST_MANAGER", "ADMISSION_DEPT", "FEE_DEPT"];
 
 export default async function Student360View({ params }: { params: { id: string } }) {
     const session = await auth();

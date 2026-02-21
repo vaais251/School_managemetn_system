@@ -177,7 +177,35 @@ export async function markVoucherPaid(voucherId: string) {
         });
 
         revalidatePath("/dashboard/finance");
+        revalidatePath("/dashboard/students");
         return { success: true, message: "Voucher marked as PAID." };
+    } catch (error: any) {
+        return { success: false, message: error.message || "Failed to update voucher status." };
+    }
+}
+
+/**
+ * Marks a specific voucher as UNPAID.
+ */
+export async function markVoucherUnpaid(voucherId: string) {
+    try {
+        const session = await checkFinanceAuth();
+
+        const validated = MarkPaidSchema.safeParse({ voucherId });
+        if (!validated.success) return { success: false, message: "Invalid voucher ID." };
+
+        await prisma.feeVoucher.update({
+            where: { id: validated.data.voucherId },
+            data: { status: "UNPAID" },
+        });
+
+        await prisma.auditLog.create({
+            data: { actorId: session.user.id, actionType: "MARK_VOUCHER_UNPAID", targetId: voucherId }
+        });
+
+        revalidatePath("/dashboard/finance");
+        revalidatePath("/dashboard/students");
+        return { success: true, message: "Voucher marked as UNPAID." };
     } catch (error: any) {
         return { success: false, message: error.message || "Failed to update voucher status." };
     }

@@ -14,8 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const FormSchema = z.object({
     classId: z.string().uuid({ message: "Please select a class." }),
-    tuitionFee: z.number().min(0),
-    hostelFee: z.number().min(0),
+    tuitionFee: z.coerce.number().min(0, { message: "Fee cannot be negative" }),
+    hostelFee: z.coerce.number().min(0, { message: "Fee cannot be negative" }),
 });
 
 interface Props {

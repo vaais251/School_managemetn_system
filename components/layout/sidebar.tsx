@@ -57,7 +57,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
             title: "Students",
             href: "/dashboard/students",
             icon: GraduationCap,
-            roles: ["SUPER_ADMIN", "TRUST_MANAGER", "SECTION_HEAD", "ADMISSION_DEPT"],
+            roles: ["SUPER_ADMIN", "TRUST_MANAGER", "SECTION_HEAD", "ADMISSION_DEPT", "FEE_DEPT"],
         },
         {
             title: "Academics",

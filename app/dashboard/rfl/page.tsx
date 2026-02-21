@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DisbursementForm } from "@/components/rfl/disbursement-form";
 import { AcademicTrackingForm } from "@/components/rfl/academic-tracking-form";
+import { DisbursementHistoryTable } from "@/components/rfl/disbursement-history-table";
 import { Banknote, GraduationCap, Users } from "lucide-react";
 
 export default async function RflDashboard() {
@@ -23,17 +24,25 @@ export default async function RflDashboard() {
         },
         include: {
             rflRecord: true,
-            disbursements: {
-                orderBy: { transactionDate: 'desc' },
-                take: 5
-            }
         },
         orderBy: { name: 'asc' }
     });
 
-    const totalDisbursed = rflStudents.reduce((acc, student) => {
-        return acc + student.disbursements.reduce((sum, d) => sum + Number(d.amount), 0);
-    }, 0);
+    // Fetch all disbursements specifically for RFL history tracking
+    const allDisbursements = await prisma.disbursement.findMany({
+        orderBy: { transactionDate: 'desc' },
+        include: {
+            student: {
+                select: {
+                    name: true,
+                    registrationId: true,
+                    rflRecord: { select: { universityName: true } }
+                }
+            }
+        }
+    });
+
+    const totalDisbursed = allDisbursements.reduce((sum, d) => sum + Number(d.amount), 0);
 
     return (
         <div className="space-y-6">
@@ -76,11 +85,24 @@ export default async function RflDashboard() {
                 </Card>
             </div>
 
-            <Tabs defaultValue="disbursement" className="space-y-4">
+            <Tabs defaultValue="history" className="space-y-4">
                 <TabsList>
+                    <TabsTrigger value="history">Disbursement History</TabsTrigger>
                     <TabsTrigger value="disbursement">Log Disbursement</TabsTrigger>
                     <TabsTrigger value="academics">Academic Tracking</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="history" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Disbursement Ledger</CardTitle>
+                            <CardDescription>A complete historical record of all funds distributed to RFL scholars.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <DisbursementHistoryTable disbursements={allDisbursements as any} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
                 <TabsContent value="disbursement" className="space-y-4">
                     <Card>
@@ -89,7 +111,7 @@ export default async function RflDashboard() {
                             <CardDescription>Log tuition, stipends, or hostel funds handed to an RFL scholar.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <DisbursementForm students={rflStudents} />
+                            <DisbursementForm students={rflStudents as any} />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -101,7 +123,7 @@ export default async function RflDashboard() {
                             <CardDescription>Track the ongoing progress of an RFL student in higher education.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <AcademicTrackingForm students={rflStudents} />
+                            <AcademicTrackingForm students={rflStudents as any} />
                         </CardContent>
                     </Card>
                 </TabsContent>

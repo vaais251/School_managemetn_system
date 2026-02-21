@@ -5,9 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Eye, Users, GraduationCap, Info } from "lucide-react";
+import { Eye, Users, GraduationCap, Info, Receipt } from "lucide-react";
 import { Suspense } from "react";
 import { StudentFilters } from "@/components/students/student-filters";
+import { MarkFeeButton } from "@/components/students/mark-fee-button";
+import { format } from "date-fns";
 
 interface PageProps {
     searchParams: Promise<{ q?: string; class?: string }>;
@@ -15,7 +17,7 @@ interface PageProps {
 
 export default async function StudentsDirectoryPage({ searchParams }: PageProps) {
     const session = await auth();
-    const authorizedRoles = ["SUPER_ADMIN", "TRUST_MANAGER", "SECTION_HEAD", "ADMISSION_DEPT"];
+    const authorizedRoles = ["SUPER_ADMIN", "TRUST_MANAGER", "SECTION_HEAD", "ADMISSION_DEPT", "FEE_DEPT"];
 
     if (!session || !authorizedRoles.includes(session.user.role)) {
         if (session?.user?.role === "TEACHER") redirect("/dashboard/teacher");
@@ -23,6 +25,7 @@ export default async function StudentsDirectoryPage({ searchParams }: PageProps)
     }
 
     const isTrustManager = session.user.role === "TRUST_MANAGER";
+    const isFeeDept = session.user.role === "FEE_DEPT";
 
     const params = await searchParams;
     const searchQuery = params.q?.trim() ?? "";
@@ -68,6 +71,7 @@ export default async function StudentsDirectoryPage({ searchParams }: PageProps)
             user: { select: { email: true, isActive: true } },
             enrollments: { where: { status: "ACTIVE" }, take: 1 },
             rflRecord: isTrustManager ? true : false,
+            feeVouchers: isFeeDept ? { orderBy: { month: "desc" }, take: 1 } : false,
         },
     });
 
@@ -135,6 +139,16 @@ export default async function StudentsDirectoryPage({ searchParams }: PageProps)
                 </div>
             )}
 
+            {/* FEE_DEPT scoped notice */}
+            {isFeeDept && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                    <Receipt className="h-4 w-4 shrink-0" />
+                    <span>
+                        As Fee Department, you can quickly verify and easily update each student's most recent fee voucher status.
+                    </span>
+                </div>
+            )}
+
             {/* Filters (hidden for TM since RFL has no classes) */}
             {!isTrustManager && (
                 <Card>
@@ -183,19 +197,45 @@ export default async function StudentsDirectoryPage({ searchParams }: PageProps)
                 const groupStudents = grouped[groupName];
                 const isRfl = groupName.startsWith("RFL") || groupName.startsWith("Unassigned");
 
+                let paidCount = 0;
+                let unpaidCount = 0;
+
+                if (isFeeDept) {
+                    groupStudents.forEach(s => {
+                        const v = (s as any).feeVouchers?.[0];
+                        if (v?.status === "PAID") paidCount++;
+                        if (v?.status === "UNPAID") unpaidCount++;
+                    });
+                }
+
                 return (
                     <Card key={groupName}>
                         <CardHeader className="pb-3">
-                            <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-lg ${isRfl ? "bg-amber-50" : "bg-blue-50"}`}>
-                                    <GraduationCap className={`h-5 w-5 ${isRfl ? "text-amber-600" : "text-blue-600"}`} />
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${isRfl ? "bg-amber-50" : "bg-blue-50"}`}>
+                                        <GraduationCap className={`h-5 w-5 ${isRfl ? "text-amber-600" : "text-blue-600"}`} />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">{groupName}</CardTitle>
+                                        <CardDescription>
+                                            {groupStudents.length} student{groupStudents.length !== 1 ? "s" : ""}
+                                        </CardDescription>
+                                    </div>
                                 </div>
-                                <div>
-                                    <CardTitle className="text-lg">{groupName}</CardTitle>
-                                    <CardDescription>
-                                        {groupStudents.length} student{groupStudents.length !== 1 ? "s" : ""}
-                                    </CardDescription>
-                                </div>
+                                {isFeeDept && !isRfl && groupStudents.length > 0 && (
+                                    <div className="flex items-center gap-3 text-sm">
+                                        <div className="flex flex-col text-right">
+                                            <span className="font-semibold text-green-600">{paidCount} Paid</span>
+                                            <span className="text-xs text-muted-foreground">Recent Vouchers</span>
+                                        </div>
+                                        <div className="h-8 w-px bg-slate-200"></div>
+                                        <div className="flex flex-col text-left">
+                                            <span className="font-semibold text-red-600">{unpaidCount} Pending</span>
+                                            <span className="text-xs text-muted-foreground">Recent Vouchers</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </CardHeader>
                         <CardContent className="pt-0">
@@ -211,6 +251,11 @@ export default async function StudentsDirectoryPage({ searchParams }: PageProps)
                                                     <th scope="col" className="px-4 py-3">University</th>
                                                     <th scope="col" className="px-4 py-3 text-center">GPA</th>
                                                 </>
+                                            ) : isFeeDept ? (
+                                                <>
+                                                    <th scope="col" className="px-4 py-3">Program</th>
+                                                    <th scope="col" className="px-4 py-3">Current Fee Status</th>
+                                                </>
                                             ) : (
                                                 <>
                                                     <th scope="col" className="px-4 py-3">Program</th>
@@ -223,6 +268,7 @@ export default async function StudentsDirectoryPage({ searchParams }: PageProps)
                                     <tbody>
                                         {groupStudents.map((student: any) => {
                                             const program = student.enrollments[0]?.type;
+                                            const recentVoucher = student.feeVouchers?.[0]; // Only exists if isFeeDept
                                             return (
                                                 <tr
                                                     key={student.id}
@@ -256,6 +302,30 @@ export default async function StudentsDirectoryPage({ searchParams }: PageProps)
                                                                     </span>
                                                                 ) : (
                                                                     <span className="text-muted-foreground text-xs">—</span>
+                                                                )}
+                                                            </td>
+                                                        </>
+                                                    ) : isFeeDept ? (
+                                                        <>
+                                                            <td className="px-4 py-3">
+                                                                {program ? (
+                                                                    <span className={`text-xs px-2 py-1 rounded-full border font-medium ${programBadgeColor[program] ?? "bg-slate-100 text-slate-700"}`}>
+                                                                        {program}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-xs text-muted-foreground">—</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                {recentVoucher ? (
+                                                                    <div className="flex flex-col gap-1 items-start">
+                                                                        <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">
+                                                                            {format(new Date(recentVoucher.month), "MMM yyyy")}
+                                                                        </span>
+                                                                        <MarkFeeButton voucherId={recentVoucher.id} status={recentVoucher.status} />
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-xs text-muted-foreground italic">No fee generated</span>
                                                                 )}
                                                             </td>
                                                         </>
