@@ -31,7 +31,7 @@ export const authConfig = {
 
             if (pathname.startsWith('/dashboard/rfl') && !isRole(['SUPER_ADMIN', 'TRUST_MANAGER'])) return false;
             if (pathname.startsWith('/dashboard/finance') && !isRole(['SUPER_ADMIN', 'TRUST_MANAGER', 'FEE_DEPT'])) return false;
-            if (pathname.startsWith('/dashboard/academics') && !isRole(['SUPER_ADMIN', 'SECTION_HEAD', 'EXAM_DEPT', 'TEACHER'])) return false;
+            if (pathname.startsWith('/dashboard/academics') && !isRole(['SUPER_ADMIN', 'SECTION_HEAD', 'EXAM_DEPT'])) return false;
             if (pathname.startsWith('/dashboard/reports') && !isRole(['SUPER_ADMIN', 'TRUST_MANAGER', 'SECTION_HEAD'])) return false;
 
             if (pathname.startsWith('/dashboard/teacher') && !isRole(['TEACHER'])) return false;

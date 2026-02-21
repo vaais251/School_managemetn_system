@@ -3,8 +3,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, BookOpen, Users } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DailyAttendanceForm } from "@/components/teacher/daily-attendance-form";
-import { UploadMarksForm } from "@/components/teacher/upload-marks-form";
+import { AttendanceTable } from "@/components/teacher/AttendanceTable";
+import { SubjectMarksWrapper } from "@/components/teacher/subject-marks-wrapper";
+import { StudentDirectory } from "@/components/teacher/student-directory";
+import { ClipboardList } from "lucide-react";
+import prisma from "@/lib/prisma";
 
 export default async function TeacherDashboard() {
     const res = await getTeacherDashboard();
@@ -41,21 +44,41 @@ export default async function TeacherDashboard() {
         );
     }
 
+    // Fetch today's attendance for the class assignments
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const classIds = classAssignments.map((a: any) => a.class.id);
+    const todayAttendance = classIds.length > 0 ? await prisma.attendance.findMany({
+        where: {
+            date: today,
+            student: { classId: { in: classIds } }
+        },
+        select: { studentId: true, status: true }
+    }) : [];
+
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex items-center justify-between space-y-2 mb-6">
                 <h2 className="text-3xl font-bold tracking-tight">Teacher Portal</h2>
             </div>
 
-            <Tabs defaultValue={classAssignments.length > 0 ? "attendance" : "marks"} className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="attendance" disabled={classAssignments.length === 0}>
-                        <Users className="h-4 w-4 mr-2" />
-                        Daily Attendance
-                    </TabsTrigger>
-                    <TabsTrigger value="marks" disabled={subjectAssignments.length === 0}>
-                        <BookOpen className="h-4 w-4 mr-2" />
-                        Upload Marks
+            <Tabs defaultValue="directory" className="space-y-4">
+                <TabsList className="bg-slate-100 flex-wrap h-auto p-1">
+                    {classAssignments.length > 0 && (
+                        <TabsTrigger value="attendance" className="data-[state=active]:bg-white">
+                            <Users className="h-4 w-4 mr-2" />
+                            Daily Attendance
+                        </TabsTrigger>
+                    )}
+                    {subjectAssignments.length > 0 && (
+                        <TabsTrigger value="marks" className="data-[state=active]:bg-white">
+                            <BookOpen className="h-4 w-4 mr-2" />
+                            Subject Marks
+                        </TabsTrigger>
+                    )}
+                    <TabsTrigger value="directory" className="data-[state=active]:bg-white">
+                        <ClipboardList className="h-4 w-4 mr-2" />
+                        Student Directory & Remarks
                     </TabsTrigger>
                 </TabsList>
 
@@ -74,9 +97,10 @@ export default async function TeacherDashboard() {
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent>
-                                        <DailyAttendanceForm
+                                        <AttendanceTable
                                             classId={assignment.class.id}
                                             students={assignment.class.studentProfiles}
+                                            initialAttendance={todayAttendance}
                                         />
                                     </CardContent>
                                 </Card>
@@ -90,27 +114,35 @@ export default async function TeacherDashboard() {
                   */}
                 <TabsContent value="marks" className="space-y-4">
                     {subjectAssignments.length > 0 && (
-                        <div className="grid gap-4 md:grid-cols-1">
-                            {subjectAssignments.map((assignment: any) => (
-                                <Card key={assignment.id}>
-                                    <CardHeader>
-                                        <CardTitle>{assignment.subject?.name} - {assignment.class.name}</CardTitle>
-                                        <CardDescription>
-                                            Upload marks for exams or quizzes. ({assignment.class.studentProfiles.length} students)
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <UploadMarksForm
-                                            classId={assignment.class.id}
-                                            subjectId={assignment.subjectId!}
-                                            subjectName={assignment.subject?.name}
-                                            students={assignment.class.studentProfiles}
-                                        />
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Upload Subject Marks</CardTitle>
+                                <CardDescription>
+                                    Upload marks for exams or quizzes across all your assigned subjects.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <SubjectMarksWrapper assignments={subjectAssignments} />
+                            </CardContent>
+                        </Card>
                     )}
+                </TabsContent>
+
+                {/* 
+                  * STUDENT DIRECTORY VIEW: Remarks
+                  */}
+                <TabsContent value="directory" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Student Directory & Remarks</CardTitle>
+                            <CardDescription>
+                                A consolidated list of all students from your assigned classes and subjects.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <StudentDirectory assignments={assignments} />
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
         </div>

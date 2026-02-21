@@ -1,3 +1,5 @@
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { AcademicSetupForms } from "@/components/academics/academic-setup-forms";
 import {
@@ -11,6 +13,12 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function AcademicsPage() {
+    const session = await auth();
+    // Hard server-side protection to prevent teachers or students from accessing setup
+    if (!session || ["TEACHER", "STUDENT"].includes(session.user.role)) {
+        redirect("/dashboard");
+    }
+
     const classes = await prisma.class.findMany();
     const subjects = await prisma.subject.findMany();
 

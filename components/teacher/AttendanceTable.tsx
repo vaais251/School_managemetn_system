@@ -31,18 +31,26 @@ const FormSchema = z.object({
 interface Props {
     classId: string;
     students: { id: string; name: string; registrationId: string }[];
+    initialAttendance: { studentId: string; status: AttendanceStatus }[];
 }
 
-export function DailyAttendanceForm({ classId, students }: Props) {
+export function AttendanceTable({ classId, students, initialAttendance }: Props) {
     const [loading, setLoading] = useState(false);
-    const [submittedDates, setSubmittedDates] = useState<string[]>([]);
 
-    // Initialize form with default PRESENT for all students
+    // Initialize submitted dates with today if there's initial attendance
+    const [submittedDates, setSubmittedDates] = useState<string[]>(
+        initialAttendance.length > 0 ? [new Date().toDateString()] : []
+    );
+
+    // Initialize form, prioritizing existing records from the database
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
         defaultValues: {
             date: new Date(),
-            attendance: students.map(s => ({ studentId: s.id, status: AttendanceStatus.PRESENT })),
+            attendance: students.map(s => {
+                const existing = initialAttendance.find(a => a.studentId === s.id);
+                return { studentId: s.id, status: existing ? existing.status : AttendanceStatus.PRESENT };
+            }),
         },
     });
 
@@ -82,6 +90,7 @@ export function DailyAttendanceForm({ classId, students }: Props) {
 
         if (result.success) {
             toast.success(result.message);
+            // Mark this date as submitted
             if (!submittedDates.includes(data.date.toDateString())) {
                 setSubmittedDates(prev => [...prev, data.date.toDateString()]);
             }

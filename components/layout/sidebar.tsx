@@ -57,13 +57,19 @@ export default function Sidebar({ userRole }: SidebarProps) {
             title: "Students",
             href: "/dashboard/students",
             icon: GraduationCap,
-            roles: ["SUPER_ADMIN", "TRUST_MANAGER", "SECTION_HEAD", "ADMISSION_DEPT", "TEACHER"],
+            roles: ["SUPER_ADMIN", "TRUST_MANAGER", "SECTION_HEAD", "ADMISSION_DEPT"],
         },
         {
             title: "Academics",
             href: "/dashboard/academics",
             icon: BookOpen,
-            roles: ["SUPER_ADMIN", "SECTION_HEAD", "EXAM_DEPT", "TEACHER"],
+            roles: ["SUPER_ADMIN", "SECTION_HEAD", "EXAM_DEPT"],
+        },
+        {
+            title: "Teacher Portal",
+            href: "/dashboard/teacher",
+            icon: BookOpen,
+            roles: ["TEACHER"],
         },
         {
             title: "Finance",

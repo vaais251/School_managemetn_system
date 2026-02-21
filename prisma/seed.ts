@@ -65,6 +65,7 @@ async function main() {
 
     await prisma.teacherAssignment.createMany({
         data: [
+            { teacherId: t1.id, classId: grade9.id, subjectId: null }, // t1 is the Class Teacher for Grade 9
             { teacherId: t1.id, classId: grade9.id, subjectId: math.id },
             { teacherId: t1.id, classId: grade10.id, subjectId: physics.id },
             { teacherId: t2.id, classId: grade9.id, subjectId: english.id },
