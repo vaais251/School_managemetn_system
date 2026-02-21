@@ -47,7 +47,8 @@ export function UploadMarksForm({ classId, subjectId, subjectName, students }: P
         name: "marks",
     });
 
-    const watchTotalMarks = form.watch("totalMarks");
+
+
 
     async function onSubmit(data: z.infer<typeof FormSchema>) {
         // Front-end check to ensure marksObtained <= totalMarks

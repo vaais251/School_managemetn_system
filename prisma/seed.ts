@@ -114,6 +114,8 @@ async function main() {
         });
 
         // 2. Create Profile
+        // Safely extract reqClass to help TypeScript narrow the type
+        const reqClass = 'reqClass' in st ? (st as { reqClass: { id: string } }).reqClass : null;
         const profile = await prisma.studentProfile.create({
             data: {
                 userId: u.id,
@@ -121,7 +123,7 @@ async function main() {
                 name: st.name,
                 isBeneficiary: st.isBen || false,
                 needsHostel: ('hostel' in st && st.hostel) ? true : false,
-                classId: 'reqClass' in st ? st.reqClass.id : null,
+                classId: reqClass ? reqClass.id : null,
                 guardianInfo: {
                     name: `Guardian of ${st.name}`,
                     relationship: "Parent",
@@ -155,17 +157,19 @@ async function main() {
                 }
             });
 
-            // Add dummy marks
-            await prisma.studentMark.create({
-                data: {
-                    studentId: profile.id,
-                    classId: st.reqClass.id,
-                    subjectId: math.id,
-                    examTitle: "Midterms 2026",
-                    marksObtained: Math.floor(Math.random() * 50) + 50,
-                    totalMarks: 100,
-                }
-            });
+            // Add dummy marks (reqClass is always set for non-RFL students)
+            if (reqClass) {
+                await prisma.studentMark.create({
+                    data: {
+                        studentId: profile.id,
+                        classId: reqClass.id,
+                        subjectId: math.id,
+                        examTitle: "Midterms 2026",
+                        marksObtained: Math.floor(Math.random() * 50) + 50,
+                        totalMarks: 100,
+                    }
+                });
+            }
             await prisma.attendance.create({
                 data: {
                     studentId: profile.id,
