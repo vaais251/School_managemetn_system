@@ -5,100 +5,302 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, Users, GraduationCap, Info } from "lucide-react";
+import { Suspense } from "react";
+import { StudentFilters } from "@/components/students/student-filters";
 
-export default async function StudentsDirectoryPage() {
+interface PageProps {
+    searchParams: Promise<{ q?: string; class?: string }>;
+}
+
+export default async function StudentsDirectoryPage({ searchParams }: PageProps) {
     const session = await auth();
     const authorizedRoles = ["SUPER_ADMIN", "TRUST_MANAGER", "SECTION_HEAD", "ADMISSION_DEPT"];
 
     if (!session || !authorizedRoles.includes(session.user.role)) {
-        if (session?.user?.role === "TEACHER") {
-            redirect("/dashboard/teacher");
-        }
+        if (session?.user?.role === "TEACHER") redirect("/dashboard/teacher");
         redirect("/dashboard");
     }
 
+    const isTrustManager = session.user.role === "TRUST_MANAGER";
+
+    const params = await searchParams;
+    const searchQuery = params.q?.trim() ?? "";
+    const classFilter = params.class ?? "";
+
+    // Fetch all classes for the filter dropdown (only relevant for non-TM roles)
+    const classes = isTrustManager
+        ? []
+        : await prisma.class.findMany({ orderBy: { name: "asc" } });
+
+    // Build dynamic Prisma query
+    const whereClause: any = {};
+
+    // TRUST_MANAGER can ONLY see RFL students (scholarship students)
+    if (isTrustManager) {
+        whereClause.enrollments = {
+            some: { type: "RFL", status: "ACTIVE" },
+        };
+    }
+
+    if (searchQuery) {
+        whereClause.OR = [
+            { name: { contains: searchQuery, mode: "insensitive" } },
+            { registrationId: { contains: searchQuery, mode: "insensitive" } },
+            { user: { email: { contains: searchQuery, mode: "insensitive" } } },
+        ];
+    }
+
+    // Class filter only applies for non-TRUST_MANAGER roles
+    if (!isTrustManager) {
+        if (classFilter === "unassigned") {
+            whereClause.classId = null;
+        } else if (classFilter && classFilter !== "all") {
+            whereClause.classId = classFilter;
+        }
+    }
+
     const students = await prisma.studentProfile.findMany({
-        orderBy: { name: 'asc' },
+        where: whereClause,
+        orderBy: [{ name: "asc" }],
         include: {
             class: true,
             user: { select: { email: true, isActive: true } },
-            enrollments: true,
-        }
+            enrollments: { where: { status: "ACTIVE" }, take: 1 },
+            rflRecord: isTrustManager ? true : false,
+        },
     });
+
+    // For total count badge
+    const totalCount = await prisma.studentProfile.count(
+        isTrustManager
+            ? { where: { enrollments: { some: { type: "RFL" } } } }
+            : undefined
+    );
+
+    // Group students by class for non-TM roles; flat list for TM (RFL have no class)
+    const grouped: Record<string, typeof students> = {};
+
+    for (const student of students) {
+        const key = isTrustManager
+            ? "RFL Scholarship Scholars"
+            : (student.class?.name ?? "Unassigned (RFL / No Class)");
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(student);
+    }
+
+    const groupKeys = Object.keys(grouped).sort((a, b) => {
+        if (a.startsWith("Unassigned") || a.startsWith("RFL")) return 1;
+        if (b.startsWith("Unassigned") || b.startsWith("RFL")) return -1;
+        return a.localeCompare(b);
+    });
+
+    const programBadgeColor: Record<string, string> = {
+        MRHSS: "bg-blue-100 text-blue-800 border-blue-200",
+        MRA: "bg-purple-100 text-purple-800 border-purple-200",
+        RFL: "bg-amber-100 text-amber-800 border-amber-200",
+    };
 
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-3xl font-bold tracking-tight text-slate-800">Global Student Directory</h2>
-                <p className="text-muted-foreground">Comprehensive listing of all enrolled students across the institution.</p>
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight text-slate-800">
+                        {isTrustManager ? "RFL Scholar Directory" : "Global Student Directory"}
+                    </h2>
+                    <p className="text-muted-foreground mt-1">
+                        {isTrustManager
+                            ? "View all Roshni Foundation & Learning scholarship scholars and their profiles."
+                            : "Comprehensive listing of all enrolled students across the institution."}
+                    </p>
+                </div>
+                <div className="flex items-center gap-2 text-sm bg-slate-100 px-4 py-2 rounded-lg">
+                    <Users className="h-4 w-4 text-slate-500" />
+                    <span className="font-semibold text-slate-700">{totalCount}</span>
+                    <span className="text-muted-foreground">
+                        {isTrustManager ? "RFL scholars" : "total students"}
+                    </span>
+                </div>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Enrolled Students</CardTitle>
-                    <CardDescription>View all student records and their current academic standing.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border overflow-x-auto">
-                        <table className="w-full text-sm text-left text-slate-500">
-                            <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3">Registration ID</th>
-                                    <th scope="col" className="px-6 py-3">Student Info</th>
-                                    <th scope="col" className="px-6 py-3">Class / Program</th>
-                                    <th scope="col" className="px-6 py-3">Status</th>
-                                    <th scope="col" className="px-6 py-3 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {students.map((student) => (
-                                    <tr key={student.id} className="bg-white border-b hover:bg-slate-50">
-                                        <td className="px-6 py-4 font-mono text-xs whitespace-nowrap">
-                                            {student.registrationId}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="font-semibold text-slate-900">{student.name}</div>
-                                            <div className="text-xs text-muted-foreground">{student.user?.email}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col gap-1 items-start">
-                                                {student.class ? (
-                                                    <Badge variant="outline" className="w-fit">{student.class.name}</Badge>
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground">Unassigned</span>
-                                                )}
-                                                {student.enrollments.map(e => (
-                                                    <span key={e.id} className="text-xs text-slate-500">{e.type} ({e.status})</span>
-                                                ))}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <Badge variant={student.user?.isActive ? "default" : "destructive"}>
-                                                {student.user?.isActive ? "Active Account" : "Inactive"}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <Link href={`/dashboard/admin/student/${student.id}`}>
-                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                    <Eye className="h-4 w-4 text-blue-600" />
-                                                </Button>
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {students.length === 0 && (
-                                    <tr>
-                                        <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
-                                            No students found in the system.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </CardContent>
-            </Card>
+            {/* TRUST_MANAGER scoped notice */}
+            {isTrustManager && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                    <Info className="h-4 w-4 shrink-0" />
+                    <span>
+                        As Trust Manager, you can only view <strong>RFL (Roshni Foundation & Learning)</strong> scholarship students.
+                        Click the <strong>View</strong> button to see a student's academic performance and disbursement history.
+                    </span>
+                </div>
+            )}
+
+            {/* Filters (hidden for TM since RFL has no classes) */}
+            {!isTrustManager && (
+                <Card>
+                    <CardContent className="pt-4 pb-4">
+                        <Suspense fallback={<div className="h-10 animate-pulse bg-slate-100 rounded" />}>
+                            <StudentFilters
+                                classes={classes}
+                                totalCount={totalCount}
+                                filteredCount={students.length}
+                            />
+                        </Suspense>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Search for TM (simple, no class filter) */}
+            {isTrustManager && (
+                <Card>
+                    <CardContent className="pt-4 pb-4">
+                        <Suspense fallback={<div className="h-10 animate-pulse bg-slate-100 rounded" />}>
+                            <StudentFilters
+                                classes={[]}
+                                totalCount={totalCount}
+                                filteredCount={students.length}
+                            />
+                        </Suspense>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* No results */}
+            {students.length === 0 && (
+                <Card>
+                    <CardContent className="py-12 text-center">
+                        <GraduationCap className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                        <p className="text-muted-foreground font-medium">No students found.</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Try adjusting your search filter.
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Grouped Sections */}
+            {groupKeys.map((groupName) => {
+                const groupStudents = grouped[groupName];
+                const isRfl = groupName.startsWith("RFL") || groupName.startsWith("Unassigned");
+
+                return (
+                    <Card key={groupName}>
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${isRfl ? "bg-amber-50" : "bg-blue-50"}`}>
+                                    <GraduationCap className={`h-5 w-5 ${isRfl ? "text-amber-600" : "text-blue-600"}`} />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-lg">{groupName}</CardTitle>
+                                    <CardDescription>
+                                        {groupStudents.length} student{groupStudents.length !== 1 ? "s" : ""}
+                                    </CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <div className="rounded-md border overflow-x-auto">
+                                <table className="w-full text-sm text-left text-slate-500">
+                                    <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                                        <tr>
+                                            <th scope="col" className="px-4 py-3">Reg ID</th>
+                                            <th scope="col" className="px-4 py-3">Student Name</th>
+                                            <th scope="col" className="px-4 py-3 hidden sm:table-cell">Email</th>
+                                            {isTrustManager ? (
+                                                <>
+                                                    <th scope="col" className="px-4 py-3">University</th>
+                                                    <th scope="col" className="px-4 py-3 text-center">GPA</th>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <th scope="col" className="px-4 py-3">Program</th>
+                                                    <th scope="col" className="px-4 py-3">Status</th>
+                                                </>
+                                            )}
+                                            <th scope="col" className="px-4 py-3 text-right">View</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {groupStudents.map((student: any) => {
+                                            const program = student.enrollments[0]?.type;
+                                            return (
+                                                <tr
+                                                    key={student.id}
+                                                    className="bg-white border-b last:border-0 hover:bg-slate-50 transition-colors"
+                                                >
+                                                    <td className="px-4 py-3 font-mono text-xs whitespace-nowrap text-slate-600">
+                                                        {student.registrationId}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <div className="font-semibold text-slate-900">{student.name}</div>
+                                                        {student.isBeneficiary && (
+                                                            <span className="text-[10px] text-yellow-700 bg-yellow-50 border border-yellow-200 px-1.5 py-0.5 rounded-full">
+                                                                Financial Aid
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-xs text-muted-foreground hidden sm:table-cell">
+                                                        {student.user?.email}
+                                                    </td>
+                                                    {isTrustManager ? (
+                                                        <>
+                                                            <td className="px-4 py-3 text-xs text-slate-700">
+                                                                {student.rflRecord?.universityName ?? (
+                                                                    <span className="text-muted-foreground italic">Not recorded</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center">
+                                                                {student.rflRecord?.gpa ? (
+                                                                    <span className={`font-bold text-sm ${Number(student.rflRecord.gpa) >= 3.0 ? "text-green-600" : Number(student.rflRecord.gpa) >= 2.0 ? "text-amber-600" : "text-red-600"}`}>
+                                                                        {Number(student.rflRecord.gpa).toFixed(2)}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-muted-foreground text-xs">—</span>
+                                                                )}
+                                                            </td>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <td className="px-4 py-3">
+                                                                {program ? (
+                                                                    <span className={`text-xs px-2 py-1 rounded-full border font-medium ${programBadgeColor[program] ?? "bg-slate-100 text-slate-700"}`}>
+                                                                        {program}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-xs text-muted-foreground">—</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <Badge
+                                                                    variant={student.user?.isActive ? "default" : "destructive"}
+                                                                    className="text-xs"
+                                                                >
+                                                                    {student.user?.isActive ? "Active" : "Inactive"}
+                                                                </Badge>
+                                                            </td>
+                                                        </>
+                                                    )}
+                                                    <td className="px-4 py-3 text-right">
+                                                        <Link href={`/dashboard/admin/student/${student.id}`}>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0 hover:bg-blue-50"
+                                                            >
+                                                                <Eye className="h-4 w-4 text-blue-600" />
+                                                            </Button>
+                                                        </Link>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                );
+            })}
         </div>
     );
 }
