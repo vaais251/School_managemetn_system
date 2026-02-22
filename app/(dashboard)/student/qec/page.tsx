@@ -8,7 +8,8 @@ export const metadata: Metadata = {
 };
 
 export default async function StudentQecPage() {
-    const pendingSurveys = await getPendingSurveys();
+    const pendingSurveysRaw = await getPendingSurveys();
+    const pendingSurveys = JSON.parse(JSON.stringify(pendingSurveysRaw));
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

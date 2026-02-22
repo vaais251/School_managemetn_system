@@ -15,9 +15,14 @@ export const metadata: Metadata = {
 
 export default async function StudentDashboardPage() {
     const session = await auth();
-    const studentData = await getStudentDashboardData();
-    const pendingSurveys = await getPendingSurveys();
-    const teacherRemarks = session?.user?.id ? await getRemarksForStudent(session.user.id) : [];
+    const studentDataRaw = await getStudentDashboardData();
+    const studentData = JSON.parse(JSON.stringify(studentDataRaw));
+
+    const pendingSurveysRaw = await getPendingSurveys();
+    const pendingSurveys = JSON.parse(JSON.stringify(pendingSurveysRaw));
+
+    const teacherRemarksRaw = session?.user?.id ? await getRemarksForStudent(session.user.id) : [];
+    const teacherRemarks = JSON.parse(JSON.stringify(teacherRemarksRaw));
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
