@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -32,14 +33,17 @@ export default function Header({ user }: HeaderProps) {
                     <DropdownMenuTrigger asChild>
                         <Avatar className="cursor-pointer">
                             <AvatarImage src={user.image || ""} alt={user.name || "User"} />
-                            <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
+                            <AvatarFallback>{user.name?.[0] || user.email?.[0]?.toUpperCase() || "U"}</AvatarFallback>
                         </Avatar>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>Settings</DropdownMenuItem>
-                        <DropdownMenuItem>Support</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link href="/dashboard/profile" className="w-full cursor-pointer">
+                                My Profile &amp; Settings
+                            </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <form
                             action={async () => {

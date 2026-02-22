@@ -17,6 +17,7 @@ import {
     UserCheck,
     ClipboardCheck,
     LineChart,
+    UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -45,6 +46,12 @@ export default function Sidebar({ userRole }: SidebarProps) {
             title: "Dashboard",
             href: "/dashboard",
             icon: LayoutDashboard,
+            roles: ["ALL"],
+        },
+        {
+            title: "My Profile",
+            href: "/dashboard/profile",
+            icon: UserCircle,
             roles: ["ALL"],
         },
         {

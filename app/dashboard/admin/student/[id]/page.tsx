@@ -9,14 +9,15 @@ import { User, GraduationCap, Banknote, ShieldAlert } from "lucide-react";
 
 const AUTHORIZED_ROLES = ["SUPER_ADMIN", "SECTION_HEAD", "TRUST_MANAGER", "ADMISSION_DEPT", "FEE_DEPT"];
 
-export default async function Student360View({ params }: { params: { id: string } }) {
+export default async function Student360View({ params }: { params: Promise<{ id: string }> }) {
     const session = await auth();
     if (!session || !AUTHORIZED_ROLES.includes(session.user.role)) redirect("/dashboard");
 
     const isTrustManager = session.user.role === "TRUST_MANAGER";
+    const { id } = await params;
 
     const student = await prisma.studentProfile.findUnique({
-        where: { id: params.id },
+        where: { id },
         include: {
             class: true,
             enrollments: true,
