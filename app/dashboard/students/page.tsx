@@ -106,23 +106,23 @@ export default async function StudentsDirectoryPage({ searchParams }: PageProps)
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-7xl mx-auto">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight text-slate-800">
                         {isTrustManager ? "RFL Scholar Directory" : "Global Student Directory"}
                     </h2>
-                    <p className="text-muted-foreground mt-1">
+                    <p className="text-slate-500 mt-1">
                         {isTrustManager
                             ? "View all Roshni Foundation & Learning scholarship scholars and their profiles."
                             : "Comprehensive listing of all enrolled students across the institution."}
                     </p>
                 </div>
-                <div className="flex items-center gap-2 text-sm bg-slate-100 px-4 py-2 rounded-lg">
-                    <Users className="h-4 w-4 text-slate-500" />
-                    <span className="font-semibold text-slate-700">{totalCount}</span>
-                    <span className="text-muted-foreground">
+                <div className="flex items-center gap-2 text-sm bg-white border border-slate-200 shadow-sm px-4 py-2.5 rounded-xl">
+                    <Users className="h-4 w-4 text-blue-600" />
+                    <span className="font-bold text-slate-700">{totalCount}</span>
+                    <span className="text-slate-500 font-medium">
                         {isTrustManager ? "RFL scholars" : "total students"}
                     </span>
                 </div>
@@ -130,21 +130,21 @@ export default async function StudentsDirectoryPage({ searchParams }: PageProps)
 
             {/* TRUST_MANAGER scoped notice */}
             {isTrustManager && (
-                <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-                    <Info className="h-4 w-4 shrink-0" />
-                    <span>
-                        As Trust Manager, you can only view <strong>RFL (Roshni Foundation & Learning)</strong> scholarship students.
-                        Click the <strong>View</strong> button to see a student's academic performance and disbursement history.
+                <div className="flex items-start gap-3 px-5 py-4 bg-gradient-to-r from-amber-50 to-white border border-amber-200/60 rounded-xl shadow-sm">
+                    <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <span className="text-sm text-amber-900 leading-relaxed">
+                        As Trust Manager, you can only view <strong className="font-semibold">RFL (Roshni Foundation & Learning)</strong> scholarship students.
+                        Click the <strong className="font-semibold">View</strong> button to see a student's academic performance and disbursement history.
                     </span>
                 </div>
             )}
 
             {/* FEE_DEPT scoped notice */}
             {isFeeDept && (
-                <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-                    <Receipt className="h-4 w-4 shrink-0" />
-                    <span>
-                        As Fee Department, you can quickly verify and easily update each student's most recent fee voucher status.
+                <div className="flex items-start gap-3 px-5 py-4 bg-gradient-to-r from-blue-50 to-white border border-blue-200/60 rounded-xl shadow-sm">
+                    <Receipt className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                    <span className="text-sm text-blue-900 leading-relaxed">
+                        As Fee Department, you can quickly verify and easily update each student's most recent fee voucher status from this directory.
                     </span>
                 </div>
             )}

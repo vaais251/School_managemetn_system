@@ -52,34 +52,45 @@ export default async function Student360View({ params }: { params: Promise<{ id:
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-slate-800">{student.name}</h2>
-                    <p className="text-muted-foreground">Registration ID: {student.registrationId}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    {isTrustManager && (
-                        <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs" variant="outline">
-                            RFL Scholar
+            {/* Premium Header Profile Card */}
+            <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-200/60 shadow-sm">
+                <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-blue-600 to-indigo-700" />
+                <div className="relative pt-12 px-6 pb-6 sm:px-8 sm:pb-8 flex flex-col sm:flex-row items-center sm:items-end gap-6">
+                    {/* Avatar */}
+                    <div className="h-24 w-24 rounded-full border-4 border-white bg-white shadow-md flex items-center justify-center shrink-0 overflow-hidden">
+                        <div className="h-full w-full bg-gradient-to-br from-blue-100 to-indigo-50 flex items-center justify-center text-blue-700 text-3xl font-bold">
+                            {student.name.charAt(0)}
+                        </div>
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 text-center sm:text-left">
+                        <h2 className="text-3xl font-bold tracking-tight text-slate-900">{student.name}</h2>
+                        <p className="text-slate-500 font-medium mt-1">Registration ID: <span className="text-slate-700 font-mono text-sm">{student.registrationId}</span></p>
+                    </div>
+                    {/* Badges */}
+                    <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-end">
+                        {isTrustManager && (
+                            <Badge className="bg-amber-100 text-amber-800 border-amber-200" variant="outline">
+                                RFL Scholar
+                            </Badge>
+                        )}
+                        <Badge variant={student.user.isActive ? "default" : "destructive"} className="shadow-sm">
+                            {student.user.isActive ? "Active Account" : "Suspended"}
                         </Badge>
-                    )}
-                    <Badge variant={student.user.isActive ? "default" : "destructive"} className="text-sm">
-                        {student.user.isActive ? "Active Account" : "Suspended"}
-                    </Badge>
+                    </div>
                 </div>
             </div>
 
-            <Tabs defaultValue="identity" className="space-y-4">
-                <TabsList className="flex flex-wrap h-auto gap-1">
-                    <TabsTrigger value="identity" className="flex items-center gap-2">
-                        <User size={16} /> Identity
+            <Tabs defaultValue="identity" className="space-y-6">
+                <TabsList className="bg-slate-100/50 p-1 flex-wrap h-auto shadow-sm border border-slate-200/60 rounded-xl">
+                    <TabsTrigger value="identity" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all flex items-center gap-2 font-medium">
+                        <User size={16} className="text-blue-600" /> Identity
                     </TabsTrigger>
-                    <TabsTrigger value="academic" className="flex items-center gap-2">
-                        <GraduationCap size={16} /> Academic Performance
+                    <TabsTrigger value="academic" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all flex items-center gap-2 font-medium">
+                        <GraduationCap size={16} className="text-indigo-600" /> Academic Performance
                     </TabsTrigger>
-                    <TabsTrigger value="finance" className="flex items-center gap-2">
-                        <Banknote size={16} />
+                    <TabsTrigger value="finance" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 transition-all flex items-center gap-2 font-medium">
+                        <Banknote size={16} className="text-sky-600" />
                         {isTrustManager ? "Disbursements" : "Finance"}
                     </TabsTrigger>
                 </TabsList>
@@ -87,62 +98,64 @@ export default async function Student360View({ params }: { params: Promise<{ id:
                 {/* ─── Identity Tab ─── */}
                 <TabsContent value="identity" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2">
-                        <Card>
-                            <CardHeader><CardTitle>Profile Details</CardTitle></CardHeader>
-                            <CardContent className="space-y-2">
-                                <div className="grid grid-cols-3 py-1 border-b text-sm">
-                                    <span className="text-muted-foreground">Email:</span>
-                                    <span className="col-span-2 font-medium">{student.user.email}</span>
+                        <Card className="border-slate-200/60 shadow-sm">
+                            <CardHeader className="pb-3 border-b border-slate-100 mb-4">
+                                <CardTitle className="text-lg">Profile Details</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-0">
+                                <div className="grid grid-cols-3 py-3 border-b border-slate-100 text-sm">
+                                    <span className="text-slate-500 font-medium tracking-wide">Email</span>
+                                    <span className="col-span-2 font-semibold text-slate-800">{student.user.email}</span>
                                 </div>
-                                <div className="grid grid-cols-3 py-1 border-b text-sm">
-                                    <span className="text-muted-foreground">Class:</span>
-                                    <span className="col-span-2 font-medium">{student.class?.name || "Unassigned"}</span>
+                                <div className="grid grid-cols-3 py-3 border-b border-slate-100 text-sm">
+                                    <span className="text-slate-500 font-medium tracking-wide">Class</span>
+                                    <span className="col-span-2 font-semibold text-slate-800">{student.class?.name || "Unassigned"}</span>
                                 </div>
-                                <div className="grid grid-cols-3 py-1 border-b text-sm">
-                                    <span className="text-muted-foreground">Program:</span>
-                                    <span className="col-span-2 font-medium"><Badge>{activeProgram}</Badge></span>
+                                <div className="grid grid-cols-3 py-3 border-b border-slate-100 text-sm">
+                                    <span className="text-slate-500 font-medium tracking-wide">Program</span>
+                                    <span className="col-span-2"><Badge variant="outline" className="bg-slate-50 text-slate-700">{activeProgram}</Badge></span>
                                 </div>
-                                <div className="grid grid-cols-3 py-1 border-b text-sm">
-                                    <span className="text-muted-foreground">Joined:</span>
-                                    <span className="col-span-2 font-medium">{format(student.user.createdAt, "PP")}</span>
+                                <div className="grid grid-cols-3 py-3 border-b border-slate-100 text-sm">
+                                    <span className="text-slate-500 font-medium tracking-wide">Joined</span>
+                                    <span className="col-span-2 font-semibold text-slate-800">{format(student.user.createdAt, "PP")}</span>
                                 </div>
-                                <div className="grid grid-cols-3 py-1 text-sm">
-                                    <span className="text-muted-foreground">Flags:</span>
+                                <div className="grid grid-cols-3 py-3 text-sm">
+                                    <span className="text-slate-500 font-medium tracking-wide">Flags</span>
                                     <span className="col-span-2 flex gap-2 flex-wrap">
-                                        {student.isBeneficiary && <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Financial Aid</Badge>}
-                                        {student.needsHostel && <Badge variant="secondary" className="bg-blue-100 text-blue-800">Hostel</Badge>}
+                                        {student.isBeneficiary && <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 border border-yellow-200">Financial Aid</Badge>}
+                                        {student.needsHostel && <Badge variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-200">Hostel</Badge>}
                                     </span>
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Guardian Information</CardTitle>
+                        <Card className="border-slate-200/60 shadow-sm">
+                            <CardHeader className="pb-3 border-b border-slate-100 mb-4">
+                                <CardTitle className="text-lg">Guardian Information</CardTitle>
                                 <CardDescription>Emergency contact and relationship details.</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-2">
+                            <CardContent className="space-y-0">
                                 {guardianInfo ? (
                                     <>
-                                        <div className="grid grid-cols-3 py-1 border-b text-sm">
-                                            <span className="text-muted-foreground">Name:</span>
-                                            <span className="col-span-2 font-medium">{guardianInfo.name}</span>
+                                        <div className="grid grid-cols-3 py-3 border-b border-slate-100 text-sm">
+                                            <span className="text-slate-500 font-medium tracking-wide">Name</span>
+                                            <span className="col-span-2 font-semibold text-slate-800">{guardianInfo.name}</span>
                                         </div>
-                                        <div className="grid grid-cols-3 py-1 border-b text-sm">
-                                            <span className="text-muted-foreground">Relation:</span>
-                                            <span className="col-span-2 font-medium">{guardianInfo.relationship}</span>
+                                        <div className="grid grid-cols-3 py-3 border-b border-slate-100 text-sm">
+                                            <span className="text-slate-500 font-medium tracking-wide">Relation</span>
+                                            <span className="col-span-2 font-semibold text-slate-800">{guardianInfo.relationship}</span>
                                         </div>
-                                        <div className="grid grid-cols-3 py-1 border-b text-sm">
-                                            <span className="text-muted-foreground">Phone:</span>
-                                            <span className="col-span-2 font-medium">{guardianInfo.phone}</span>
+                                        <div className="grid grid-cols-3 py-3 border-b border-slate-100 text-sm">
+                                            <span className="text-slate-500 font-medium tracking-wide">Phone</span>
+                                            <span className="col-span-2 font-semibold text-slate-800">{guardianInfo.phone}</span>
                                         </div>
-                                        <div className="grid grid-cols-3 py-1 text-sm">
-                                            <span className="text-muted-foreground">Address:</span>
-                                            <span className="col-span-2 font-medium">{guardianInfo.address}</span>
+                                        <div className="grid grid-cols-3 py-3 text-sm">
+                                            <span className="text-slate-500 font-medium tracking-wide">Address</span>
+                                            <span className="col-span-2 font-semibold text-slate-800">{guardianInfo.address}</span>
                                         </div>
                                     </>
                                 ) : (
-                                    <p className="text-sm text-muted-foreground italic">No guardian information provided.</p>
+                                    <div className="py-6 text-center text-sm text-slate-500 italic">No guardian information provided.</div>
                                 )}
                             </CardContent>
                         </Card>
