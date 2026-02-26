@@ -22,6 +22,9 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Install openssl for Prisma engine to work correctly
+RUN apk add --no-cache openssl
+
 ENV NODE_ENV=production
 
 # Create a non-root user for security
