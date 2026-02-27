@@ -198,7 +198,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
             {/* Mobile Sidebar */}
             <Sheet open={open} onOpenChange={setOpen}>
                 <SheetTrigger asChild>
-                    <Button variant="ghost" className="md:hidden fixed top-4 left-4 z-40">
+                    <Button variant="outline" className="md:hidden fixed top-3 left-3 z-50 h-10 w-10 rounded-lg border border-slate-200 bg-white shadow-md shadow-slate-200/50 hover:bg-slate-50">
                         <Menu />
                     </Button>
                 </SheetTrigger>
